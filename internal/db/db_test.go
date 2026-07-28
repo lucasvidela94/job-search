@@ -30,7 +30,7 @@ func TestMigrateCreatesTables(t *testing.T) {
 	defer d.Close()
 
 	// Verify tables exist
-	tables := []string{"applications", "events", "cover_letters"}
+	tables := []string{"applications", "events"}
 	for _, name := range tables {
 		var exists int
 		err := d.QueryRow(

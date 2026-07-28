@@ -64,15 +64,10 @@ func (db *DB) Migrate() error {
 		timestamp TEXT NOT NULL DEFAULT (datetime('now'))
 	);
 
-	CREATE TABLE IF NOT EXISTS cover_letters (
-		id TEXT PRIMARY KEY,
-		application_id TEXT NOT NULL REFERENCES applications(id),
-		content TEXT NOT NULL,
-		created_at TEXT NOT NULL DEFAULT (datetime('now'))
-	);
+	-- cover_letters was removed: cover is generated on-the-fly via apply --cover
+	DROP TABLE IF EXISTS cover_letters;
 
 	CREATE INDEX IF NOT EXISTS idx_events_app_id ON events(application_id);
-	CREATE INDEX IF NOT EXISTS idx_cover_app_id ON cover_letters(application_id);
 	CREATE INDEX IF NOT EXISTS idx_apps_url ON applications(url);
 	`
 
