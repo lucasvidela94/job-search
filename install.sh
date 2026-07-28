@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-REPO="lucasvidela94/jobsearch"
+REPO="lucasvidela94/job-search"
 PROJECT="jobsearch"
 INSTALL_DIR="/usr/local/bin"
 

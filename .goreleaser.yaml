@@ -48,7 +48,7 @@ brews:
       branch: master
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     directory: Formula
-    homepage: https://github.com/lucasvidela94/jobsearch
+    homepage: https://github.com/lucasvidela94/job-search
     description: Multi-source job search toolkit — search, scrape, rank, and apply from the CLI
     license: MIT
     install: |
