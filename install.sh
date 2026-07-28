@@ -3,7 +3,7 @@ set -eu
 
 REPO="lucasvidela94/job-search"
 PROJECT="jobsearch"
-INSTALL_DIR="/usr/local/bin"
+INSTALL_DIR="${INSTALL_DIR:-${HOME}/.local/bin}"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -21,6 +21,8 @@ while [ "$#" -gt 0 ]; do
       ;;
     -h|--help)
       echo "Usage: sh install.sh [--dir <path>]"
+      echo ""
+      echo "Defaults to ~/.local/bin/jobsearch"
       echo ""
       echo "Environment variables:"
       echo "  JOBSEARCH_VERSION  Pin a specific version (default: latest)"
@@ -156,24 +158,15 @@ install_to() {
   cp "$TMPDIR/${PROJECT}" "$dir/${PROJECT}" 2>/dev/null && chmod +x "$dir/${PROJECT}" 2>/dev/null
 }
 
-if install_to "$INSTALL_DIR"; then
-  echo "${PROJECT} ${VERSION} installed to ${INSTALL_DIR}/${PROJECT}"
-else
-  # Fall back to user-local bin directory
-  FALLBACK="${HOME}/.local/bin"
-  echo "Warning: Cannot write to ${INSTALL_DIR}. Trying ${FALLBACK}..." >&2
-
-  if install_to "$FALLBACK"; then
-    echo "${PROJECT} ${VERSION} installed to ${FALLBACK}/${PROJECT}"
-    case ":${PATH}:" in
-      *:"${FALLBACK}":*) ;;
-      *) echo "  Add ${FALLBACK} to your PATH:  export PATH=\"${FALLBACK}:\$PATH\"" >&2
-         echo "  Or run:  source ~/.profile" >&2 ;;
-    esac
-  else
-    echo "Error: Cannot write to ${INSTALL_DIR} or ${FALLBACK}." >&2
-    echo "Try:  ${PROJECT}_${VERSION}_\$(uname -s | tr A-Z a-z)_\$(uname -m).tar.gz" >&2
-    echo "Extract and place the '${PROJECT}' binary somewhere in your PATH." >&2
-    exit 1
-  fi
+if ! install_to "$INSTALL_DIR"; then
+  echo "Error: Cannot write to ${INSTALL_DIR}." >&2
+  echo "Try:  INSTALL_DIR=<path> sh install.sh" >&2
+  exit 1
 fi
+
+echo "${PROJECT} ${VERSION} installed to ${INSTALL_DIR}/${PROJECT}"
+case ":${PATH}:" in
+  *:"${INSTALL_DIR}":*) ;;
+  *) echo "  Add ${INSTALL_DIR} to your PATH:" >&2
+     echo "  export PATH=\"${INSTALL_DIR}:\$PATH\"" >&2 ;;
+esac
