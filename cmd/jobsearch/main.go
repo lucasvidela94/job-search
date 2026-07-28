@@ -68,6 +68,31 @@ func main() {
 			Stderr: os.Stderr,
 			Ctx:    context.Background(),
 		}
+
+		// Auto-migrate legacy JSON tracker
+		oldEntries, err := st.LoadTracker()
+		if err != nil {
+			fmt.Fprintf(deps.Stderr, "WARNING: could not read legacy tracker for migration: %s\n", err)
+		} else if len(oldEntries) > 0 {
+			type legacyEntry = struct {
+				Company string `json:"company"`
+				Role    string `json:"role"`
+				URL     string `json:"url,omitempty"`
+				Date    string `json:"date,omitempty"`
+				Status  string `json:"status,omitempty"`
+			}
+			entries := make([]applications.TrackerEntry, len(oldEntries))
+			for i, e := range oldEntries {
+				entries[i] = applications.TrackerEntry(e)
+			}
+			n, err := deps.Apps.MigrateFromTracker(context.Background(), entries)
+			if err != nil {
+				fmt.Fprintf(deps.Stderr, "WARNING: tracker migration incomplete: %s\n", err)
+			}
+			if n > 0 {
+				fmt.Fprintf(deps.Stderr, "Migrated %d legacy tracker entries to SQLite.\n", n)
+			}
+		}
 		if err := cli.Run(args, deps); err != nil {
 			output.WriteError(os.Stderr, err, "CLI_ERROR")
 			os.Exit(1)

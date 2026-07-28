@@ -163,6 +163,7 @@ func cmdSearch(args []string, deps *Deps) error {
 	days := fs.Int("days", 0, "Recency in days (1, 7, 14, 30)")
 	remote := fs.String("remote", "", "Work type: remote, hybrid, onsite")
 	limit := fs.Int("limit", 10, "Max results per portal")
+	appliedOnly := fs.Bool("applied-only", false, "Show only applied-to jobs")
 	format := fs.String("format", "json", "Output format: json, table, plain")
 
 	fs.Usage = func() {
@@ -177,6 +178,7 @@ Flags:
   --days          Recency filter in days (1, 7, 14, 30; default: 0 = any)
   --remote        Work type: remote, hybrid, onsite (default: all)
   --limit         Max results per portal (default: 10)
+  --applied-only  Show only applied-to jobs
   --format        Output format: json (default), table, plain
   --help          Show this help
 `)
@@ -270,7 +272,32 @@ Flags:
 		fmt.Fprintf(deps.Stderr, "WARNING: some portals returned errors:\n  %s\n", strings.Join(errs, "\n  "))
 	}
 
-	return output.WriteResult(deps.Stdout, allResults, parseFormat(*format))
+	// Enrich results with applied status
+	type enrichedJob struct {
+		portal.JobPosting
+		Applied bool `json:"applied"`
+	}
+	enriched := make([]enrichedJob, 0, len(allResults))
+	for _, j := range allResults {
+		applied := false
+		if j.URL != "" {
+			existing, err := deps.Apps.FindByURL(deps.Ctx, j.URL)
+			if err == nil && existing != nil {
+				applied = true
+			}
+		}
+		if *appliedOnly && !applied {
+			continue
+		}
+		enriched = append(enriched, enrichedJob{JobPosting: j, Applied: applied})
+	}
+
+	if *appliedOnly && len(enriched) == 0 {
+		fmt.Fprintln(deps.Stderr, "No applied-to jobs match your search criteria.")
+		return nil
+	}
+
+	return output.WriteResult(deps.Stdout, enriched, parseFormat(*format))
 }
 
 func cmdDetail(args []string, deps *Deps) error {
@@ -329,7 +356,24 @@ Flags:
 		return fmt.Errorf("%s detail: %w", srcNames[0], err)
 	}
 
-	return output.WriteResult(deps.Stdout, job, parseFormat(*format))
+	// Enrich with applied status
+	type detailResult struct {
+		portal.JobPosting
+		Applied    bool   `json:"applied"`
+		AppID      string `json:"app_id,omitempty"`
+		AppStatus  string `json:"app_status,omitempty"`
+	}
+	result := detailResult{JobPosting: *job}
+	if job.URL != "" {
+		existing, err := deps.Apps.FindByURL(deps.Ctx, job.URL)
+		if err == nil && existing != nil {
+			result.Applied = true
+			result.AppID = existing.ID
+			result.AppStatus = existing.Status
+		}
+	}
+
+	return output.WriteResult(deps.Stdout, result, parseFormat(*format))
 }
 
 func cmdScrape(args []string, deps *Deps) error {

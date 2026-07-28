@@ -234,6 +234,58 @@ func (r *Repository) FindByURL(ctx context.Context, url string) (*Application, e
 	return &app, nil
 }
 
+// TrackerEntry is a legacy JSON tracker entry for migration.
+type TrackerEntry struct {
+	Company string `json:"company"`
+	Role    string `json:"role"`
+	URL     string `json:"url,omitempty"`
+	Date    string `json:"date,omitempty"`
+	Status  string `json:"status,omitempty"` // applied, interview, offer, rejected
+}
+
+// MigrateFromTracker imports legacy tracker entries into SQLite.
+// Returns the number of entries migrated. Idempotent: skips URLs already imported.
+func (r *Repository) MigrateFromTracker(ctx context.Context, entries []TrackerEntry) (int, error) {
+	migrated := 0
+	for _, e := range entries {
+		if e.URL == "" {
+			continue
+		}
+		existing, err := r.FindByURL(ctx, e.URL)
+		if err != nil {
+			return migrated, fmt.Errorf("check existing: %w", err)
+		}
+		if existing != nil {
+			continue // already imported
+		}
+
+		job := portal.JobPosting{
+			ID:      e.URL,
+			Title:   e.Role,
+			Company: e.Company,
+			URL:     e.URL,
+			Source:  "legacy",
+		}
+		app, err := r.Create(ctx, job)
+		if err != nil {
+			return migrated, fmt.Errorf("create from tracker: %w", err)
+		}
+
+		// If status is more specific than "applied", add follow-up event
+		if e.Status != "" && e.Status != "applied" {
+			notes := "Migrated from legacy tracker"
+			if e.Date != "" {
+				notes = "Migrated from legacy tracker (original: " + e.Date + ")"
+			}
+			if _, err := r.AddEvent(ctx, app.ID, e.Status, notes); err != nil {
+				return migrated, fmt.Errorf("add event for %s: %w", e.URL, err)
+			}
+		}
+		migrated++
+	}
+	return migrated, nil
+}
+
 // CountByStatus returns the number of applications grouped by latest event type.
 func (r *Repository) CountByStatus(ctx context.Context) (map[string]int, error) {
 	rows, err := r.db.QueryContext(ctx, `
