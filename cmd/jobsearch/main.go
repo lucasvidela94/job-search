@@ -13,6 +13,7 @@ import (
 	"github.com/lucasvidela94/jobsearch/internal/cli"
 	"github.com/lucasvidela94/jobsearch/internal/config"
 	"github.com/lucasvidela94/jobsearch/internal/db"
+	"github.com/lucasvidela94/jobsearch/internal/mcp"
 	"github.com/lucasvidela94/jobsearch/internal/output"
 	_ "github.com/lucasvidela94/jobsearch/internal/portal/freehire" // registers freehire portal
 	_ "github.com/lucasvidela94/jobsearch/internal/portal/linkedin" // registers linkedin portal
@@ -117,12 +118,45 @@ func main() {
 		os.Exit(1)
 	}
 
-	_ = cfg
-	_ = transport
-	_ = port
-	// MCP mode: future --transport stdio|http (v2.0)
-	fmt.Fprintf(os.Stderr, "MCP server mode not yet implemented. Use CLI mode instead.\n")
-	os.Exit(1)
+	// Initialize DB for MCP mode
+	database, err := db.Open(cfg.StoreDir())
+	if err != nil {
+		output.WriteError(os.Stderr, err, "DB_ERROR")
+		os.Exit(1)
+	}
+	defer database.Close()
+
+	st := store.New(cfg.StoreDir())
+
+	// Auto-migrate legacy JSON tracker
+	oldEntries, oldErr := st.LoadTracker()
+	if oldErr == nil && len(oldEntries) > 0 {
+		apps := applications.NewRepository(database)
+		entries := make([]applications.TrackerEntry, len(oldEntries))
+		for i, e := range oldEntries {
+			entries[i] = applications.TrackerEntry(e)
+		}
+		if n, err := apps.MigrateFromTracker(context.Background(), entries); err == nil && n > 0 {
+			fmt.Fprintf(os.Stderr, "Migrated %d legacy tracker entries to SQLite.\n", n)
+		}
+	}
+
+	switch *transport {
+	case "stdio":
+		handler := mcp.NewToolHandler(cfg, st, database, applications.NewRepository(database), resolveVersion())
+		server := mcp.New(os.Stdin, os.Stdout, handler)
+		if err := server.Run(); err != nil {
+			output.WriteError(os.Stderr, err, "MCP_ERROR")
+			os.Exit(1)
+		}
+	case "http":
+		_ = port
+		fmt.Fprintf(os.Stderr, "HTTP transport not yet implemented. Use --transport stdio.\n")
+		os.Exit(1)
+	default:
+		fmt.Fprintf(os.Stderr, "Unknown transport: %s (use stdio or http)\n", *transport)
+		os.Exit(1)
+	}
 }
 
 func runUpdate() error {
