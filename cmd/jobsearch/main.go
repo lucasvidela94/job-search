@@ -9,8 +9,10 @@ import (
 	"runtime/debug"
 	"strings"
 
+	"github.com/lucasvidela94/jobsearch/internal/applications"
 	"github.com/lucasvidela94/jobsearch/internal/cli"
 	"github.com/lucasvidela94/jobsearch/internal/config"
+	"github.com/lucasvidela94/jobsearch/internal/db"
 	"github.com/lucasvidela94/jobsearch/internal/output"
 	_ "github.com/lucasvidela94/jobsearch/internal/portal/freehire" // registers freehire portal
 	_ "github.com/lucasvidela94/jobsearch/internal/portal/linkedin" // registers linkedin portal
@@ -49,9 +51,19 @@ func main() {
 			os.Exit(1)
 		}
 		st := store.New(cfg.StoreDir())
+
+		database, err := db.Open(cfg.StoreDir())
+		if err != nil {
+			output.WriteError(os.Stderr, err, "DB_ERROR")
+			os.Exit(1)
+		}
+		defer database.Close()
+
 		deps := &cli.Deps{
 			Config: cfg,
 			Store:  st,
+			DB:     database,
+			Apps:   applications.NewRepository(database),
 			Stdout: os.Stdout,
 			Stderr: os.Stderr,
 			Ctx:    context.Background(),
