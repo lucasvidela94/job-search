@@ -60,13 +60,14 @@ func main() {
 		defer database.Close()
 
 		deps := &cli.Deps{
-			Config: cfg,
-			Store:  st,
-			DB:     database,
-			Apps:   applications.NewRepository(database),
-			Stdout: os.Stdout,
-			Stderr: os.Stderr,
-			Ctx:    context.Background(),
+			Config:  cfg,
+			Store:   st,
+			DB:      database,
+			Apps:    applications.NewRepository(database),
+			Version: resolveVersion(),
+			Stdout:  os.Stdout,
+			Stderr:  os.Stderr,
+			Ctx:     context.Background(),
 		}
 
 		// Auto-migrate legacy JSON tracker

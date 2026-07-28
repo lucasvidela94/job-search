@@ -28,13 +28,14 @@ import (
 
 // Deps holds the dependencies each command needs.
 type Deps struct {
-	Config *config.Config
-	Store  *store.Store
-	DB     *db.DB
-	Apps   *applications.Repository
-	Stdout io.Writer
-	Stderr io.Writer
-	Ctx    context.Context
+	Config  *config.Config
+	Store   *store.Store
+	DB      *db.DB
+	Apps    *applications.Repository
+	Version string
+	Stdout  io.Writer
+	Stderr  io.Writer
+	Ctx     context.Context
 }
 
 // Run dispatches the CLI command.
@@ -52,7 +53,7 @@ func Run(args []string, deps *Deps) error {
 		fmt.Fprint(deps.Stdout, helpText())
 		return nil
 	case "version", "--version":
-		fmt.Fprintln(deps.Stdout, "dev") // goreleaser sets main.version
+		fmt.Fprintln(deps.Stdout, deps.Version)
 		return nil
 	case "search":
 		return cmdSearch(cmdArgs, deps)
