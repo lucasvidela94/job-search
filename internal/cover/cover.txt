@@ -1,0 +1,26 @@
+{{.Name}}
+{{.Title}}
+{{.Email}}
+{{.Phone}}
+{{.Location}}
+
+{{.Date}}
+
+{{.HiringManager}}
+
+{{.Company}}
+{{.CompanyAddress}}
+
+Re: {{.JobTitle}} — {{.JobCompany}}
+
+Dear {{.HiringManagerSalutation}},
+
+I am writing to express my strong interest in the {{.JobTitle}} position at {{.JobCompany}}. With my background in {{.SkillList}}, I believe I am well positioned to contribute to your team.
+
+{{.Body}}
+
+I would welcome the opportunity to discuss how my experience aligns with the needs of {{.JobCompany}}. Thank you for your time and consideration.
+
+Best regards,
+
+{{.Name}}
