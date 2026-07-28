@@ -26,6 +26,7 @@ type JobPosting struct {
 	Source      string `json:"source"`            // e.g. "linkedin"
 	Seniority   string `json:"seniority,omitempty"`
 	Employment  string `json:"employment_type,omitempty"`
+	ApplyURL    string `json:"apply_url,omitempty"`
 	Salary      string `json:"salary,omitempty"`
 }
 
