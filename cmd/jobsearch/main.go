@@ -12,6 +12,7 @@ import (
 	"github.com/lucasvidela94/jobsearch/internal/cli"
 	"github.com/lucasvidela94/jobsearch/internal/config"
 	"github.com/lucasvidela94/jobsearch/internal/output"
+	_ "github.com/lucasvidela94/jobsearch/internal/portal/freehire" // registers freehire portal
 	_ "github.com/lucasvidela94/jobsearch/internal/portal/linkedin" // registers linkedin portal
 	"github.com/lucasvidela94/jobsearch/internal/store"
 	"github.com/lucasvidela94/jobsearch/internal/update"

@@ -3,15 +3,20 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/lucasvidela94/jobsearch/internal/config"
 	"github.com/lucasvidela94/jobsearch/internal/output"
 	"github.com/lucasvidela94/jobsearch/internal/portal"
+	"github.com/lucasvidela94/jobsearch/internal/profile"
+	"github.com/lucasvidela94/jobsearch/internal/rank"
+	"github.com/lucasvidela94/jobsearch/internal/scrape"
 	"github.com/lucasvidela94/jobsearch/internal/store"
 )
 
@@ -304,11 +309,194 @@ Flags:
 }
 
 func cmdScrape(args []string, deps *Deps) error {
-	return fmt.Errorf("scrape: not yet implemented — coming in Phase C")
+	fs := flag.NewFlagSet("scrape", flag.ContinueOnError)
+	sourceRaw := fs.String("source", "all", "Portal(s): linkedin, freehire, all")
+	sourceShort := fs.String("s", "all", "Portal(s) (shorthand)")
+	query := fs.String("query", "", "Search keywords")
+	queryShort := fs.String("q", "", "Search keywords (shorthand)")
+	location := fs.String("location", "", "Location filter")
+	locationShort := fs.String("l", "", "Location filter (shorthand)")
+	days := fs.Int("days", 7, "Recency in days (default: 7)")
+	remote := fs.String("remote", "", "Work type: remote, hybrid, onsite")
+	limit := fs.Int("limit", 25, "Max results per portal (default: 25)")
+	format := fs.String("format", "json", "Output format: json, table, plain")
+
+	fs.Usage = func() {
+		portals := strings.Join(portal.Names(), ", ")
+		fmt.Fprint(flag.CommandLine.Output(), `Usage: jobsearch scrape [flags]
+
+Multi-portal job scrape with dedup. Searches all portals, deduplicates against
+previously seen jobs, and saves new ones to the store.
+
+Flags:
+  --source, -s    Portal(s): `+portals+`, all
+  --query, -q     Search keywords
+  --location, -l  Location filter
+  --days          Recency in days (default: 7)
+  --remote        Work type: remote, hybrid, onsite
+  --limit         Max results per portal (default: 25)
+  --format        Output format: json (default), table, plain
+  --help          Show this help
+`)
+	}
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return err
+	}
+
+	q := *query
+	if q == "" {
+		q = *queryShort
+	}
+	loc := *location
+	if loc == "" {
+		loc = *locationShort
+	}
+	d := *days
+	if d < 0 {
+		d = 7
+	}
+	lim := *limit
+	if lim <= 0 || lim > 100 {
+		lim = 25
+	}
+
+	srcNames, err := parseSource(*sourceRaw)
+	if err != nil {
+		return err
+	}
+	if *sourceRaw == "all" && *sourceShort != "all" {
+		srcNames, err = parseSource(*sourceShort)
+		if err != nil {
+			return err
+		}
+	}
+
+	cfg := scrape.Config{
+		Portals:  srcNames,
+		Query:    q,
+		Location: loc,
+		Days:     d,
+		Remote:   *remote,
+		Limit:    lim,
+	}
+
+	result, err := scrape.Run(deps.Ctx, cfg, deps.Store)
+	if err != nil {
+		return fmt.Errorf("scrape failed: %w", err)
+	}
+
+	// Report errors on stderr
+	if len(result.Errors) > 0 {
+		for _, e := range result.Errors {
+			fmt.Fprintf(deps.Stderr, "WARNING: %s: %s\n", e.Portal, e.Error)
+		}
+	}
+
+	// Build a concise output
+	type scrapeOutput struct {
+		NewJobs   int              `json:"new_jobs"`
+		Existing  int              `json:"existing"`
+		Errors    int              `json:"errors"`
+		Results   []portal.JobPosting `json:"results,omitempty"`
+	}
+
+	out := scrapeOutput{
+		NewJobs:  len(result.NewJobs),
+		Existing: result.Existing,
+		Errors:   len(result.Errors),
+		Results:  result.NewJobs,
+	}
+	return output.WriteResult(deps.Stdout, out, parseFormat(*format))
 }
 
 func cmdRank(args []string, deps *Deps) error {
-	return fmt.Errorf("rank: not yet implemented — coming in Phase C")
+	fs := flag.NewFlagSet("rank", flag.ContinueOnError)
+	topN := fs.Int("top", 5, "Number of top results to show")
+	format := fs.String("format", "table", "Output format: json, table, plain")
+	profilePath := fs.String("profile", "", "Path to profile JSON (default: ~/.config/jobsearch/profile.json)")
+
+	fs.Usage = func() {
+		fmt.Fprint(flag.CommandLine.Output(), `Usage: jobsearch rank [flags]
+
+Score scraped jobs against your profile. Reads the profile from
+~/.config/jobsearch/profile.json and scores all scraped jobs in the store.
+
+Flags:
+  --top <N>       Number of top results (default: 5)
+  --profile       Path to profile JSON (default: ~/.config/jobsearch/profile.json)
+  --format        Output format: json, table, plain (default: table)
+  --help          Show this help
+`)
+	}
+	if err := fs.Parse(args); err != nil {
+		if errors.Is(err, flag.ErrHelp) {
+			return nil
+		}
+		return err
+	}
+
+	// Load profile
+	pp := *profilePath
+	if pp == "" {
+		pp = config.ConfigDir() + "/profile.json"
+	}
+	p, err := loadProfile(pp)
+	if err != nil {
+		return fmt.Errorf("load profile: %w\n\nCreate a profile at %s or specify --profile.\nExample profile:\n"+
+			`{"title":"Senior Go Developer","skills":["go","kubernetes","postgresql"],"seniority":"senior","remote":"remote"}`, err, pp)
+	}
+
+	// Load jobs from store
+	seen, err := deps.Store.LoadSeenJobs()
+	if err != nil {
+		return fmt.Errorf("load seen jobs: %w", err)
+	}
+
+	if len(seen) == 0 {
+		return fmt.Errorf("no scraped jobs found. Run 'jobsearch scrape' first")
+	}
+
+	// Convert seen entries to job postings
+	jobs := make([]portal.JobPosting, 0, len(seen))
+	for _, entry := range seen {
+		jobs = append(jobs, portal.JobPosting{
+			ID:      entry.URL, // use URL as ID
+			Title:   entry.Title,
+			Company: entry.Company,
+			URL:     entry.URL,
+			Source:  entry.Source,
+		})
+	}
+
+	n := *topN
+	if n <= 0 {
+		n = 5
+	}
+
+	scored := rank.ScoreJobs(jobs, p, rank.Config{TopN: n})
+	if len(scored) == 0 {
+		return fmt.Errorf("no matching jobs found")
+	}
+
+	return output.WriteResult(deps.Stdout, scored, parseFormat(*format))
+}
+
+// loadProfile reads a profile from a JSON file.
+func loadProfile(path string) (*profile.Profile, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var p profile.Profile
+	if err := json.NewDecoder(f).Decode(&p); err != nil {
+		return nil, fmt.Errorf("decode profile: %w", err)
+	}
+	return &p, nil
 }
 
 func cmdSetup(args []string, deps *Deps) error {
