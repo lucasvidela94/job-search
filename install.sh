@@ -148,17 +148,32 @@ echo "Extracting..." >&2
   exit 1
 }
 
-if [ ! -d "$INSTALL_DIR" ]; then
-  mkdir -p "$INSTALL_DIR" || {
-    echo "Error: Failed to create ${INSTALL_DIR}" >&2
-    exit 1
-  }
-fi
-
-cp "$TMPDIR/${PROJECT}" "$INSTALL_DIR/${PROJECT}" || {
-  echo "Error: Failed to copy binary to ${INSTALL_DIR}/${PROJECT}" >&2
-  exit 1
+install_to() {
+  dir="$1"
+  if [ ! -d "$dir" ]; then
+    mkdir -p "$dir" 2>/dev/null || return 1
+  fi
+  cp "$TMPDIR/${PROJECT}" "$dir/${PROJECT}" 2>/dev/null && chmod +x "$dir/${PROJECT}" 2>/dev/null
 }
-chmod +x "$INSTALL_DIR/${PROJECT}"
 
-echo "${PROJECT} ${VERSION} installed to ${INSTALL_DIR}/${PROJECT}"
+if install_to "$INSTALL_DIR"; then
+  echo "${PROJECT} ${VERSION} installed to ${INSTALL_DIR}/${PROJECT}"
+else
+  # Fall back to user-local bin directory
+  FALLBACK="${HOME}/.local/bin"
+  echo "Warning: Cannot write to ${INSTALL_DIR}. Trying ${FALLBACK}..." >&2
+
+  if install_to "$FALLBACK"; then
+    echo "${PROJECT} ${VERSION} installed to ${FALLBACK}/${PROJECT}"
+    case ":${PATH}:" in
+      *:"${FALLBACK}":*) ;;
+      *) echo "  Add ${FALLBACK} to your PATH:  export PATH=\"${FALLBACK}:\$PATH\"" >&2
+         echo "  Or run:  source ~/.profile" >&2 ;;
+    esac
+  else
+    echo "Error: Cannot write to ${INSTALL_DIR} or ${FALLBACK}." >&2
+    echo "Try:  ${PROJECT}_${VERSION}_\$(uname -s | tr A-Z a-z)_\$(uname -m).tar.gz" >&2
+    echo "Extract and place the '${PROJECT}' binary somewhere in your PATH." >&2
+    exit 1
+  fi
+fi
