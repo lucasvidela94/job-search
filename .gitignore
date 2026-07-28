@@ -1,5 +1,8 @@
 # Go
 /jobsearch
+
+# Deliverable (tracked in git)
+!install.sh
 *.exe
 *.test
 *.out

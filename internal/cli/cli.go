@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/lucasvidela94/jobsearch/internal/config"
@@ -17,6 +18,7 @@ import (
 	"github.com/lucasvidela94/jobsearch/internal/profile"
 	"github.com/lucasvidela94/jobsearch/internal/rank"
 	"github.com/lucasvidela94/jobsearch/internal/scrape"
+	"github.com/lucasvidela94/jobsearch/internal/setup"
 	"github.com/lucasvidela94/jobsearch/internal/store"
 )
 
@@ -500,5 +502,43 @@ func loadProfile(path string) (*profile.Profile, error) {
 }
 
 func cmdSetup(args []string, deps *Deps) error {
-	return fmt.Errorf("setup: not yet implemented — coming in Phase D")
+	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h") {
+		fmt.Fprint(deps.Stdout, setupHelpText())
+		return nil
+	}
+
+	binaryPath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("cannot locate binary: %w", err)
+	}
+
+	gen := setup.New(binaryPath)
+	result, err := gen.Run()
+	if err != nil {
+		return fmt.Errorf("setup failed: %w", err)
+	}
+
+	for _, f := range result.Files {
+		fmt.Fprintf(deps.Stdout, "Created %s: %s\n", f.Label, f.Path)
+	}
+
+	fmt.Fprintln(deps.Stdout)
+	fmt.Fprintln(deps.Stdout, "Setup complete!")
+	fmt.Fprintln(deps.Stdout, "Add this to your AI agent's context to enable job search capabilities:")
+	fmt.Fprintf(deps.Stdout, "  Reference: %s\n", filepath.Join(config.ConfigDir(), "agent-config.json"))
+
+	return nil
+}
+
+func setupHelpText() string {
+	return `Usage: jobsearch setup
+
+Generate agent configuration for AI coding tools.
+
+Creates agent-config.json in the jobsearch config directory
+(~/.config/jobsearch/) with the binary path, available portals,
+and command references for AI agents.
+
+No flags required. Run it after installation or update.
+`
 }
