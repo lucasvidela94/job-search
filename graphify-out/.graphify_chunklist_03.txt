@@ -1,0 +1,12 @@
+/home/sombi/code/personal/ai-job-search/.claude/skills/job-application-assistant/01-candidate-profile.md
+/home/sombi/code/personal/ai-job-search/.claude/skills/job-application-assistant/02-behavioral-profile.md
+/home/sombi/code/personal/ai-job-search/.claude/skills/job-application-assistant/03-writing-style.md
+/home/sombi/code/personal/ai-job-search/.claude/skills/job-application-assistant/04-job-evaluation.md
+/home/sombi/code/personal/ai-job-search/.claude/skills/job-application-assistant/05-cv-templates.md
+/home/sombi/code/personal/ai-job-search/.claude/skills/job-application-assistant/06-cover-letter-templates.md
+/home/sombi/code/personal/ai-job-search/.claude/skills/job-application-assistant/07-interview-prep.md
+/home/sombi/code/personal/ai-job-search/.claude/skills/job-application-assistant/08-application-forms.md
+/home/sombi/code/personal/ai-job-search/.claude/skills/job-application-assistant/SKILL.md
+/home/sombi/code/personal/ai-job-search/.claude/skills/job-scraper/SKILL.md
+/home/sombi/code/personal/ai-job-search/.claude/skills/job-scraper/search-queries.md
+/home/sombi/code/personal/ai-job-search/.claude/skills/upskill/SKILL.md

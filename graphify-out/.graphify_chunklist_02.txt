@@ -1,0 +1,12 @@
+/home/sombi/code/personal/ai-job-search/.claude/commands/add-portal.md
+/home/sombi/code/personal/ai-job-search/.claude/commands/add-template.md
+/home/sombi/code/personal/ai-job-search/.claude/commands/apply.md
+/home/sombi/code/personal/ai-job-search/.claude/commands/expand.md
+/home/sombi/code/personal/ai-job-search/.claude/commands/gmail-sync.md
+/home/sombi/code/personal/ai-job-search/.claude/commands/html-report.md
+/home/sombi/code/personal/ai-job-search/.claude/commands/interview.md
+/home/sombi/code/personal/ai-job-search/.claude/commands/notion-sync.md
+/home/sombi/code/personal/ai-job-search/.claude/commands/outcome.md
+/home/sombi/code/personal/ai-job-search/.claude/commands/rank.md
+/home/sombi/code/personal/ai-job-search/.claude/commands/reset.md
+/home/sombi/code/personal/ai-job-search/.claude/commands/setup.md

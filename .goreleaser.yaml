@@ -1,0 +1,57 @@
+version: 2
+project_name: jobsearch
+
+before:
+  hooks:
+    - go mod tidy
+    - go vet ./...
+    - go test ./...
+
+builds:
+  - main: ./cmd/jobsearch/
+    binary: jobsearch
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+
+brews:
+  - name: jobsearch
+    repository:
+      owner: lucasvidela94
+      name: homebrew-tap
+      branch: master
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Formula
+    homepage: https://github.com/lucasvidela94/jobsearch
+    description: Multi-source job search toolkit — search, scrape, rank, and apply from the CLI
+    license: MIT
+    install: |
+      bin.install "jobsearch"
+    test: |
+      system "#{bin}/jobsearch", "version"

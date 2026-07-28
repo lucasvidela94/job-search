@@ -1,0 +1,13 @@
+/home/sombi/code/personal/ai-job-search/.github/FUNDING.yml
+/home/sombi/code/personal/ai-job-search/.github/PULL_REQUEST_TEMPLATE.md
+/home/sombi/code/personal/ai-job-search/.github/workflows/ci.yml
+/home/sombi/code/personal/ai-job-search/AGENTS.md
+/home/sombi/code/personal/ai-job-search/CHANGELOG.md
+/home/sombi/code/personal/ai-job-search/CLAUDE.md
+/home/sombi/code/personal/ai-job-search/CONTRIBUTING.md
+/home/sombi/code/personal/ai-job-search/README.md
+/home/sombi/code/personal/ai-job-search/SECURITY.md
+/home/sombi/code/personal/ai-job-search/SETUP.md
+/home/sombi/code/personal/ai-job-search/documents/README.md
+/home/sombi/code/personal/ai-job-search/templates/README.md
+/home/sombi/code/personal/ai-job-search/tools/README_SALARY_TOOL.md

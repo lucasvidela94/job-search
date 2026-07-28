@@ -1,0 +1,57 @@
+# Go
+jobsearch
+*.exe
+*.test
+*.out
+*.test.exe
+coverage.out
+vendor/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Personal config & state
+jobsearch.json
+seen_jobs.json
+tracker.json
+
+# LaTeX build artifacts
+*.pdf
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+
+# Personal generated output
+cv/main_*.*
+!cv/main_example.tex
+cover_letters/cover_*.*
+!cover_letters/cover_example.tex
+documents/cv/**
+documents/linkedin/**
+documents/diplomas/**
+documents/references/**
+documents/applications/**
+documents/postings/**
+documents/interview/**
+!documents/**/.gitkeep
+
+# Personal data
+salary_data.json
+gmail_sync/
+reports/
+upskill/*.md
+job_search_tracker.csv
+
+# Personal photos
+*.jpg
+*.jpeg
+*.png
+!cover_letters/OpenFonts/fonts/**
